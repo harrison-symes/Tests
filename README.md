@@ -1,7 +1,7 @@
 # Tests
 A place for me to keep notes on how to write tests for different parts of an app
 
-### Knex database functions
+### Test Knex database functions
 1. Set up a temporary database in memory to be used for testing
 **So that you don't modify your actual database during testing
 > In root/knexfile.js
@@ -42,3 +42,43 @@ module.exports = (test, createServer) => {
   })
 }
 ```
+> In root/tests/db/db.test.js
+```
+var test = require('ava')
+//Can also use tape, but requires diff configuration
+
+var configurationDatabase = require('../helpers/database-config')
+configurationDatabase(test)
+//Tell test to use the temp database we created
+
+var db = require('../../server/db/db_functions')
+
+test('getUser gets a single user by id in the database', function (t) {
+  var expected = 'Sabrina'
+  return db.getUser(1, t.context.connection)
+    .then(function(result){
+      var actual = result[0].user_name
+      t.is(expected, actual)
+    })
+})
+
+var object={
+  user_name:'Mary',
+}
+
+test('saveUser saves a gingle user to the database', function (t){
+  return db.saveUser(object, t.context.connection)
+    .then((res)=>{
+      t.is(res.length,1) //the length of array of id of items inserted should be only one
+    })
+})
+
+test('saveUser saves user info into the database', function (t){
+  return db.saveUser(object, t.context.connection)
+    .then((res)=>{
+      return t.context.connection('users').select().where('id',2).first()
+    })
+    .then((res)=>{
+      t.is(res.user_name,"Mary")
+    })
+})
