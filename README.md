@@ -1,6 +1,11 @@
 # Tests
 A place for me to keep notes on how to write tests for different parts of an app
 
+### Menu
+1. Test Knex database functions
+2. Test server side API routes
+3. Test client side API routes
+
 ### Test Knex database functions
 1. Set up a temporary database in memory to be used for testing
 **So that you don't modify your actual database during testing
@@ -192,3 +197,85 @@ test.cb('POST /api/users adds a new user to database', (t) => {
   }
 ```
 This way you can use "npm run test-api" to run only tests in the api folder and avoid distractions.
+
+### Test client side API routes
+reference:
+jv's lecture: https://www.youtube.com/watch?v=BR0kK8alxW0&index=7&list=PLL6KkT3b5MhJA80rHn_P05wTonkkEOsWh
+Alan's personal project: https://github.com/alan-jordan/gamr/blob/master/test/client/api.test.js
+1. Install nock
+> In terminal
+```
+npm i --save-dev nock
+```
+We use nock here because we don't actually want to hit the server during test. We just want to see if the api request functions are correct. **Therefore if the api server is broken, you will not know by running this test**
+
+2. Write test
+In this case, my api functions takes a callback as argument, and pass the result to the callback function.
+So if your api function does other things the test will be different
+
+> In root/tests/api/client-users.test.js
+```
+import test from 'ava'
+import nock from 'nock'
+
+import * as api from '../../client/api/users'
+
+const testUserInfo={
+  id:1,
+  user_name:"Sabrina"
+}
+
+test.cb('getUser gets info of a single user', t =>{
+  var scope = nock('http://localhost:80')
+  //Here you're telling nock: when I visit localhost(the port is 80 I don't know why, it doesn't matter which port your app runs on), give me those things.
+    .get('/api/v1/users/1')
+    .reply(200, testUserInfo)
+    //You're telling nock how to pretend to behave as the real server
+
+  api.getUser(1, (actual)=>{
+    scope.done()
+    //Here you're saying: did you get a request? If yes this will not retrun error
+    t.is(actual.user_name,"Sabrina")
+    t.end()
+  })
+})
+
+test.cb('saveUser hits the correct route, and takes two argument', t =>{
+  var scope = nock('http://localhost:80')
+    .post('/api/v1/users')
+    .reply(201)
+
+  api.saveUser(testUserInfo,()=>{
+    scope.done()
+    t.end()
+  })
+})
+```
+What the functions look like:
+```
+import request from 'superagent'
+
+export function getUser(id, callback){
+  request
+    .get(`/api/v1/users/${id}`)
+    .end((err,res) => {
+      if (err) console.log("error occured while trying to get user info from server api", err)
+      else {
+        callback(res.body)
+      }
+    })
+}
+
+export function saveUser(object, callback){
+  request
+    .post('/api/v1/users')
+    .send(object)
+    .end((err) => {
+      if (err) console.log("error occured while trying to get user info from server api", err)
+      else {
+        callback()
+      }
+    })
+}
+```
+I might be using nock wrong but it doesn't test many things. And its error messages took me super long time to fix. It's a good way to double check if your routes written in api functions are correct I guess.
