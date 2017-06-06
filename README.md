@@ -42,6 +42,7 @@ module.exports = (test, createServer) => {
   })
 }
 ```
+2. Write tests
 > In root/tests/db/db.test.js
 ```
 var test = require('ava')
@@ -82,3 +83,13 @@ test('saveUser saves user info into the database', function (t){
       t.is(res.user_name,"Mary")
     })
 })
+```
+3. Add the test in package.json
+> In root/package.json
+```
+"scripts": {
+    "test": "ava -v tests/**/*.test.js",
+    "test-db":"ava -v tests//db/*.test.js",
+  }
+```
+This way you can use "npm run test-db" to run only tests in the db folder and avoid distractions.
